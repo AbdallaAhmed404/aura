@@ -1,6 +1,6 @@
 const express = require('express')
 const AdminRouter = express.Router()
-const authorized = require('../middlewares/authorized');
+const authorized = require('../middlewares/Authorized');
 const isAdmin = require('../middlewares/isAdmin');
 const {adminLogin,getProducts,addProduct,updateProduct,deleteProduct,
     getAdmins,createAdmin,updateAdmin,deleteAdmin,adminLogout,createNote,
