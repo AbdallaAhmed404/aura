@@ -10,32 +10,32 @@ const {adminLogin,getProducts,addProduct,updateProduct,deleteProduct,
 AdminRouter.post('/login', adminLogin);
 AdminRouter.post('/logout', adminLogout);
 
-AdminRouter.get('/products', getProducts);
+AdminRouter.get('/products', authorized, getProducts);
 AdminRouter.post('/products', authorized, addProduct);
 AdminRouter.put('/products/:id', authorized, updateProduct);
 AdminRouter.delete('/products/:id', authorized, deleteProduct);
 
-AdminRouter.get('/admin', getAdmins);         
-AdminRouter.post('/admin', createAdmin);      
-AdminRouter.put('/admin/:id', updateAdmin);     
-AdminRouter.delete('/admin/:id', deleteAdmin);
+AdminRouter.get('/admin', authorized, getAdmins);         
+AdminRouter.post('/admin', authorized, createAdmin);      
+AdminRouter.put('/admin/:id', authorized, updateAdmin);     
+AdminRouter.delete('/admin/:id', authorized, deleteAdmin);
 
-AdminRouter.get('/note', getNotes);         
+AdminRouter.get('/note', authorized, getNotes);         
 AdminRouter.post('/note', authorized, createNote);      
-AdminRouter.put('/note/:id', updateNote);     
-AdminRouter.delete('/note/:id', deleteNote);
+AdminRouter.put('/note/:id', authorized, updateNote);     
+AdminRouter.delete('/note/:id', authorized, deleteNote);
 
-AdminRouter.get('/activity-logs', getLogs);
-AdminRouter.delete('/activity-logs/:id', deleteLog);
+AdminRouter.get('/activity-logs', authorized, getLogs);
+AdminRouter.delete('/activity-logs/:id', authorized, deleteLog);
 
-AdminRouter.get('/devices/:type', getAllDevices);
-AdminRouter.post('/devices/:type', addDevice);
-AdminRouter.delete('/devices/:type/:id', deleteDevice);
+AdminRouter.get('/devices/:type', authorized, getAllDevices);
+AdminRouter.post('/devices/:type', authorized, addDevice);
+AdminRouter.delete('/devices/:type/:id', authorized, deleteDevice);
 
-AdminRouter.get('/session/:id', getDeviceSession);
-AdminRouter.put('/session/:id', updateDeviceSession);
-AdminRouter.post('/session/:id', closeDeviceSession);
-AdminRouter.get('/reports', getDailyReports);
+AdminRouter.get('/session/:id', authorized, getDeviceSession);
+AdminRouter.put('/session/:id', authorized, updateDeviceSession);
+AdminRouter.post('/session/:id', authorized, closeDeviceSession);
+AdminRouter.get('/reports', authorized, getDailyReports);
 
 module.exports = AdminRouter
 

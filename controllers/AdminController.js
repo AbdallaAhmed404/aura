@@ -10,7 +10,6 @@ const ClosedSession = require('../models/ClosedModel');
 
 
 const adminLogin = async (req, res, next) => {
-    // استقبال email بدلاً من username لتطابق نموذج قاعدة البيانات
     const { email, password } = req.body;
 
     try {
@@ -29,7 +28,7 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
-        // 3. مقارنة كلمة المرور المدخلة بالباسورد المشفر في قاعدة البيانات
+        // 3. مقارنة كلمة المرور
         const isMatch = await bcrypt.compare(password, admin.password);
 
         if (!isMatch) {
@@ -43,15 +42,10 @@ const adminLogin = async (req, res, next) => {
             { expiresIn: '1d' }
         );
 
-        // تخزين التوكن في الكوكيز (اختياري وآمن) أو إرساله في الاستجابة
-        res.cookie('auraToken', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 24 * 60 * 60 * 1000 // يوم واحد
-        });
+        // تم إلغاء تخزين الكوكي (res.cookie) نهائياً
 
-        // 5. إرسال الاستجابة بنجاح
-        res.status(200).json({
+        // 5. إرسال الاستجابة بنجاح والتوكن معها ليتولى الفرونت إند تخزينه
+        return res.status(200).json({
             success: true,
             message: 'تم تسجيل الدخول بنجاح',
             token,

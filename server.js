@@ -5,13 +5,11 @@ const connectDB = require('./conect')
 const AdminRouter = require('./routes/AdminRouts')
 const errorHandler = require('./middlewares/errorhandler');
 require('dotenv').config();
-
 app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://aura-sigma-ashen.vercel.app'
-  ],
-  credentials: true
+  ]
 }));
 app.use(express.json())
 app.use('/admin',AdminRouter)
