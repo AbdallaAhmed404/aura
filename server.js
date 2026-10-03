@@ -9,7 +9,7 @@ require('dotenv').config();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://aura-production-76a3.up.railway.app'
+    'https://aura-sigma-ashen.vercel.app'
   ],
   credentials: true
 }));
