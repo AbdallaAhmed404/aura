@@ -9,7 +9,7 @@ require('dotenv').config();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://aura-ppcu2y5p3-abdallas-projects-5164a1a1.vercel.app'
+    'https://aura-sigma-ashen.vercel.app'
   ],
   credentials: true
 }));
