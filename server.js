@@ -7,8 +7,11 @@ const errorHandler = require('./middlewares/errorhandler');
 require('dotenv').config();
 
 app.use(cors({
-  origin: 'http://localhost:3000', // ضع رابط الفرونت إند بدقة دون وضع علامة النجمة *
-  credentials: true                // للسماح بإرسال الـ Cookies والـ Credentials
+  origin: [
+    'http://localhost:3000',
+    'https://aura-ppcu2y5p3-abdallas-projects-5164a1a1.vercel.app'
+  ],
+  credentials: true
 }));
 app.use(express.json())
 app.use('/admin',AdminRouter)
