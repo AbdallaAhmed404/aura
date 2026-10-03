@@ -10,81 +10,80 @@ const ClosedSession = require('../models/ClosedModel');
 
 
 const adminLogin = async (req, res, next) => {
-  // استقبال email بدلاً من username لتطابق نموذج قاعدة البيانات
-  const { email, password } = req.body;
+    // استقبال email بدلاً من username لتطابق نموذج قاعدة البيانات
+    const { email, password } = req.body;
 
-  try {
-    // 1. البحث عن الأدمن بالإيميل
-    const admin = await Admin.findOne({ email });
+    try {
+        // 1. البحث عن الأدمن بالإيميل
+        const admin = await Admin.findOne({ email });
 
-    if (!admin) {
-      return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+        if (!admin) {
+            return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+        }
+
+        // 2. التحقق إذا كان الحساب نشطاً
+        if (admin.isActive === false) {
+            return res.status(403).json({
+                success: false,
+                message: 'حسابك معطل. يرجى التواصل مع مسؤول النظام.'
+            });
+        }
+
+        // 3. مقارنة كلمة المرور المدخلة بالباسورد المشفر في قاعدة البيانات
+        const isMatch = await bcrypt.compare(password, admin.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+        }
+
+        // 4. إنشاء التوكن (JWT)
+        const token = jwt.sign(
+            { id: admin._id, role: admin.role },
+            process.env.JWT_SECRET || 'key',
+            { expiresIn: '1d' }
+        );
+
+        // تخزين التوكن في الكوكيز (اختياري وآمن) أو إرساله في الاستجابة
+        res.cookie('auraToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000 // يوم واحد
+        });
+
+        // 5. إرسال الاستجابة بنجاح
+        res.status(200).json({
+            success: true,
+            message: 'تم تسجيل الدخول بنجاح',
+            token,
+            admin: {
+                name: admin.name,
+                email: admin.email,
+                role: admin.role
+            }
+        });
+
+    } catch (err) {
+        console.error("Admin login error:", err);
+        return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الدخول" });
     }
-
-    // 2. التحقق إذا كان الحساب نشطاً
-    if (admin.isActive === false) {
-      return res.status(403).json({
-        success: false,
-        message: 'حسابك معطل. يرجى التواصل مع مسؤول النظام.'
-      });
-    }
-
-    // 3. مقارنة كلمة المرور المدخلة بالباسورد المشفر في قاعدة البيانات
-    const isMatch = await bcrypt.compare(password, admin.password);
-
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
-    }
-
-    // 4. إنشاء التوكن (JWT)
-    const token = jwt.sign(
-      { id: admin._id, role: admin.role },
-      process.env.JWT_SECRET || 'key',
-      { expiresIn: '1d' }
-    );
-
-    // تخزين التوكن في الكوكيز (اختياري وآمن) أو إرساله في الاستجابة
-    res.cookie('auraToken', token, {
-      httpOnly: true,
-      secure: true,        // مطلوب إجباري مع SameSite: 'none' لأن دومين الفرونت والباك مختلفين
-      sameSite: 'none',    // بيسمح بإرسال الكوكي بين دومينات مختلفة (Vercel و Railway)
-      maxAge: 24 * 60 * 60 * 1000 // يوم واحد
-    });
-
-    // 5. إرسال الاستجابة بنجاح
-    res.status(200).json({
-      success: true,
-      message: 'تم تسجيل الدخول بنجاح',
-      token,
-      admin: {
-        name: admin.name,
-        email: admin.email,
-        role: admin.role
-      }
-    });
-
-  } catch (err) {
-    console.error("Admin login error:", err);
-    return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الدخول" });
-  }
 };
 
 const adminLogout = async (req, res) => {
-  try {
-    // مسح الكوكي عبر ضبط انتهاء صلاحيتها أو استخدام clearCookie
-    res.clearCookie('auraToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    });
+    try {
+        // مسح الكوكي عبر ضبط انتهاء صلاحيتها أو استخدام clearCookie
+        res.clearCookie('auraToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+        });
 
-    return res.status(200).json({
-      success: true,
-      message: 'تم تسجيل الخروج بنجاح'
-    });
-  } catch (err) {
-    console.error("Logout error:", err);
-    return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الخروج" });
-  }
+        return res.status(200).json({
+            success: true,
+            message: 'تم تسجيل الخروج بنجاح'
+        });
+    } catch (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الخروج" });
+    }
 };
 
 // 1. جلب كل الأصناف (GET)
@@ -189,7 +188,7 @@ const deleteProduct = async (req, res) => {
         message: 'الصنف غير موجود'
       });
     }
-
+    
     await ActivityLog.create({
       adminId,
       action: `حذف صنف: ${deletedProduct.name}`
@@ -209,171 +208,171 @@ const deleteProduct = async (req, res) => {
 };
 
 const getAdmins = async (req, res) => {
-  try {
-    const admins = await Admin.find().select('-password'); // جلب البيانات بدون كلمة المرور للأمان
-    res.status(200).json({ success: true, data: admins });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    try {
+        const admins = await Admin.find().select('-password'); // جلب البيانات بدون كلمة المرور للأمان
+        res.status(200).json({ success: true, data: admins });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 // إضافة حساب جديد (POST)
 const createAdmin = async (req, res) => {
-  try {
-    const { name, email, password, role, isActive } = req.body;
+    try {
+        const { name, email, password, role, isActive } = req.body;
 
-    // التحقق من عدم تكرار البريد الإلكتروني
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res.status(400).json({ success: false, message: "البريد الإلكتروني مستخدم مسبقاً." });
+        // التحقق من عدم تكرار البريد الإلكتروني
+        const existingAdmin = await Admin.findOne({ email });
+        if (existingAdmin) {
+            return res.status(400).json({ success: false, message: "البريد الإلكتروني مستخدم مسبقاً." });
+        }
+
+        // تشفير كلمة المرور (اختياري ولكن ينصح به بشدة)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newAdmin = await Admin.create({
+            name,
+            email,
+            password: hashedPassword,
+            role,
+            isActive: isActive !== undefined ? isActive : true
+        });
+
+        res.status(201).json({ success: true, data: newAdmin, message: "تمت إضافة الحساب بنجاح." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    // تشفير كلمة المرور (اختياري ولكن ينصح به بشدة)
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newAdmin = await Admin.create({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      isActive: isActive !== undefined ? isActive : true
-    });
-
-    res.status(201).json({ success: true, data: newAdmin, message: "تمت إضافة الحساب بنجاح." });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 // تحديث بيانات الحساب (PUT)
 const updateAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, password, role, isActive } = req.body;
+    try {
+        const { id } = req.params;
+        const { name, email, password, role, isActive } = req.body;
 
-    let updateData = { name, email, role, isActive };
+        let updateData = { name, email, role, isActive };
 
-    // إذا تم إدخال كلمة مرور جديدة، يتم تشفيرها وتحديثها
-    if (password && password.trim() !== "") {
-      const salt = await bcrypt.genSalt(10);
-      updateData.password = await bcrypt.hash(password, salt);
+        // إذا تم إدخال كلمة مرور جديدة، يتم تشفيرها وتحديثها
+        if (password && password.trim() !== "") {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(password, salt);
+        }
+
+        const updatedAdmin = await Admin.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updatedAdmin) {
+            return res.status(404).json({ success: false, message: "الحساب غير موجود." });
+        }
+
+        res.status(200).json({ success: true, data: updatedAdmin, message: "تم تعديل الحساب بنجاح." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    const updatedAdmin = await Admin.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedAdmin) {
-      return res.status(404).json({ success: false, message: "الحساب غير موجود." });
-    }
-
-    res.status(200).json({ success: true, data: updatedAdmin, message: "تم تعديل الحساب بنجاح." });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 // حذف الحساب (DELETE)
 const deleteAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedAdmin = await Admin.findByIdAndDelete(id);
+    try {
+        const { id } = req.params;
+        const deletedAdmin = await Admin.findByIdAndDelete(id);
 
-    if (!deletedAdmin) {
-      return res.status(404).json({ success: false, message: "الحساب غير موجود." });
+        if (!deletedAdmin) {
+            return res.status(404).json({ success: false, message: "الحساب غير موجود." });
+        }
+
+        res.status(200).json({ success: true, message: "تم حذف الحساب بنجاح." });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    res.status(200).json({ success: true, message: "تم حذف الحساب بنجاح." });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 // 1. إضافة ملاحظة جديدة (Create / Add)
 const createNote = async (req, res) => {
-  try {
-    const { noteText } = req.body;
+    try {
+        const { noteText } = req.body;
+        
+        // استخراج adminId من التوكن الذي قام الميدل وير بوضعه في req.admin
+        const adminId = req.admin.id ;
 
-    // استخراج adminId من التوكن الذي قام الميدل وير بوضعه في req.admin
-    const adminId = req.admin.id;
+        if (!adminId) {
+            return res.status(401).json({ success: false, message: 'غير مصرح، يرجى تسجيل الدخول مجدداً' });
+        }
 
-    if (!adminId) {
-      return res.status(401).json({ success: false, message: 'غير مصرح، يرجى تسجيل الدخول مجدداً' });
+        const newNote = await Note.create({
+            adminId,
+            noteText
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'تمت إضافة الملاحظة بنجاح',
+            data: newNote
+        });
+    } catch (error) {
+        console.error("Error creating note:", error);
+        res.status(500).json({ success: false, message: 'حدث خطأ أثناء إضافة الملاحظة' });
     }
-
-    const newNote = await Note.create({
-      adminId,
-      noteText
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'تمت إضافة الملاحظة بنجاح',
-      data: newNote
-    });
-  } catch (error) {
-    console.error("Error creating note:", error);
-    res.status(500).json({ success: false, message: 'حدث خطأ أثناء إضافة الملاحظة' });
-  }
 };
 
 // 2. جلب كل الملاحظات (Get All) مع إمكانية جلب بيانات الأدمن الذي كتبها (populating)
 const getNotes = async (req, res) => {
-  try {
-    const notes = await Note.find()
-      .populate('adminId', 'name') // لجلب اسم وإيميل الأدمن المرتبط بالملاحظة
-      .sort({ createdAt: -1 });
+    try {
+        const notes = await Note.find()
+            .populate('adminId', 'name') // لجلب اسم وإيميل الأدمن المرتبط بالملاحظة
+            .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: notes.length,
-      data: notes
-    });
-  } catch (error) {
-    console.error("Error fetching notes:", error);
-    res.status(500).json({ success: false, message: 'حدث خطأ أثناء جلب الملاحظات' });
-  }
+        res.status(200).json({
+            success: true,
+            count: notes.length,
+            data: notes
+        });
+    } catch (error) {
+        console.error("Error fetching notes:", error);
+        res.status(500).json({ success: false, message: 'حدث خطأ أثناء جلب الملاحظات' });
+    }
 };
 
 // 3. تحديث ملاحظة (Update)
 const updateNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { noteText } = req.body;
+    try {
+        const { id } = req.params;
+        const { noteText } = req.body;
 
-    const updatedNote = await Note.findByIdAndUpdate(
-      id,
-      { noteText },
-      { new: true, runValidators: true }
-    );
+        const updatedNote = await Note.findByIdAndUpdate(
+            id,
+            { noteText},
+            { new: true, runValidators: true }
+        );
 
-    if (!updatedNote) {
-      return res.status(404).json({ success: false, message: 'الملاحظة غير موجودة' });
+        if (!updatedNote) {
+            return res.status(404).json({ success: false, message: 'الملاحظة غير موجودة' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'تم تحديث الملاحظة بنجاح',
+            data: updatedNote
+        });
+    } catch (error) {
+        console.error("Error updating note:", error);
+        res.status(500).json({ success: false, message: 'حدث خطأ أثناء تحديث الملاحظة' });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'تم تحديث الملاحظة بنجاح',
-      data: updatedNote
-    });
-  } catch (error) {
-    console.error("Error updating note:", error);
-    res.status(500).json({ success: false, message: 'حدث خطأ أثناء تحديث الملاحظة' });
-  }
 };
 
 // 4. حذف ملاحظة (Delete)
 const deleteNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedNote = await Note.findByIdAndDelete(id);
-    res.status(200).json({
-      success: true,
-      message: 'تم حذف الملاحظة بنجاح'
-    });
-  } catch (error) {
-    console.error("Error deleting note:", error);
-    res.status(500).json({ success: false, message: 'حدث خطأ أثناء حذف الملاحظة' });
-  }
+    try {
+        const { id } = req.params;
+        const deletedNote = await Note.findByIdAndDelete(id);
+        res.status(200).json({
+            success: true,
+            message: 'تم حذف الملاحظة بنجاح'
+        });
+    } catch (error) {
+        console.error("Error deleting note:", error);
+        res.status(500).json({ success: false, message: 'حدث خطأ أثناء حذف الملاحظة' });
+    }
 };
 
 const getLogs = async (req, res) => {
@@ -445,7 +444,7 @@ const addDevice = async (req, res) => {
     const { deviceId, name, status, hourlyRate } = req.body;
 
     const typeNames = { billiards: 'طاولة', playstation: 'بلايستيشن', racing: 'سيموليتر سباق' };
-
+    
     const newDevice = await DeviceSession.create({
       deviceId: Number(deviceId),
       type,
@@ -463,9 +462,9 @@ const addDevice = async (req, res) => {
 const deleteDevice = async (req, res) => {
   try {
     const { type, id } = req.params;
-
+    
     const deletedDevice = await DeviceSession.findOneAndDelete({ type, deviceId: Number(id) });
-
+    
     if (!deletedDevice) {
       return res.status(404).json({ success: false, message: "الجهاز غير موجود" });
     }
@@ -479,7 +478,7 @@ const deleteDevice = async (req, res) => {
 const getDeviceSession = async (req, res) => {
   try {
     const { id } = req.params;
-
+    
     // البحث المباشر بـ _id في قاعدة البيانات
     const device = await DeviceSession.findById(id);
 
@@ -522,7 +521,7 @@ const closeDeviceSession = async (req, res) => {
     const { paymentMethod, finalTotal: clientFinalTotal, timeCost: clientTimeCost, productsTotal: clientProductsTotal, discountPercent: clientDiscountPercent } = req.body;
 
     // 1. جلب بيانات الجلسة الحالية باستخدام الـ _id الخاص بمونجو
-    const session = await DeviceSession.findById(id);
+    const session = await DeviceSession.findById(id); 
     if (!session) {
       return res.status(404).json({ success: false, message: "الجلسة غير موجودة" });
     }
@@ -531,7 +530,7 @@ const closeDeviceSession = async (req, res) => {
     const timeCost = clientTimeCost !== undefined ? clientTimeCost : (session.timeCost || 0);
     const productsTotal = clientProductsTotal !== undefined ? clientProductsTotal : (session.productsTotal || 0);
     const discountPercent = clientDiscountPercent !== undefined ? clientDiscountPercent : (session.discountPercent || 0);
-
+    
     const subTotal = timeCost + productsTotal;
     const discountAmount = (subTotal * discountPercent) / 100;
     const finalTotal = clientFinalTotal !== undefined ? clientFinalTotal : Math.max(0, subTotal - discountAmount);
@@ -600,27 +599,27 @@ const getDailyReports = async (req, res) => {
 
 
 module.exports = {
-  adminLogin,
-  getProducts,
-  addProduct,
-  updateProduct,
-  deleteProduct,
-  getAdmins,
-  createAdmin,
-  updateAdmin,
-  deleteAdmin,
-  adminLogout,
-  createNote,
-  getNotes,
-  updateNote,
-  deleteNote,
-  getLogs,
-  deleteLog,
-  getDeviceSession,
-  updateDeviceSession,
-  closeDeviceSession,
-  getAllDevices,
-  addDevice,
-  deleteDevice,
-  getDailyReports
+    adminLogin,
+    getProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    getAdmins,
+    createAdmin,
+    updateAdmin,
+    deleteAdmin,
+    adminLogout,
+    createNote,
+    getNotes,
+    updateNote,
+    deleteNote,
+    getLogs,
+    deleteLog,
+    getDeviceSession,
+    updateDeviceSession,
+    closeDeviceSession,
+    getAllDevices,
+    addDevice,
+    deleteDevice,
+    getDailyReports
 };
