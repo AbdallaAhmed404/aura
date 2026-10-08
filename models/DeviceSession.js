@@ -33,9 +33,19 @@ const deviceSessionSchema = new mongoose.Schema({
     type: Number,
     default: 2.000,
   },
+  // أضف هذا الحقل هنا لحفظ المدة المختارة بالساعات
+  selectedDurationHours: {
+    type: Number,
+    default: 1,
+  },
   startTime: {
     type: Date,
     default: null,
+  },
+  // أضف هذا الحقل لتخزين الثواني المنقضية الفعليّة عند الإيقاف المؤقت أو التحديث
+  elapsedSeconds: {
+    type: Number,
+    default: 0,
   },
   customer: {
     name: { type: String, default: "" },

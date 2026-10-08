@@ -18,7 +18,7 @@ const isAdmin = async (req, res, next) => {
     try {
         const decoded = await asyncverify(token, process.env.JWT_SECRET || 'key');
         
-        if (decoded.role !== 'admin') {
+        if (decoded.role !== 'مدير النظام') {
             return next(customError({
                 statusCode: 403,
                 message: "Access denied. Admins only"

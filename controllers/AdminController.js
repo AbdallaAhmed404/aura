@@ -10,74 +10,74 @@ const ClosedSession = require('../models/ClosedModel');
 
 
 const adminLogin = async (req, res, next) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    try {
-        // 1. البحث عن الأدمن بالإيميل
-        const admin = await Admin.findOne({ email });
+  try {
+    // 1. البحث عن الأدمن بالإيميل
+    const admin = await Admin.findOne({ email });
 
-        if (!admin) {
-            return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
-        }
-
-        // 2. التحقق إذا كان الحساب نشطاً
-        if (admin.isActive === false) {
-            return res.status(403).json({
-                success: false,
-                message: 'حسابك معطل. يرجى التواصل مع مسؤول النظام.'
-            });
-        }
-
-        // 3. مقارنة كلمة المرور
-        const isMatch = await bcrypt.compare(password, admin.password);
-
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
-        }
-
-        // 4. إنشاء التوكن (JWT)
-        const token = jwt.sign(
-            { id: admin._id, role: admin.role },
-            process.env.JWT_SECRET || 'key',
-            { expiresIn: '1d' }
-        );
-
-        // تم إلغاء تخزين الكوكي (res.cookie) نهائياً
-
-        // 5. إرسال الاستجابة بنجاح والتوكن معها ليتولى الفرونت إند تخزينه
-        return res.status(200).json({
-            success: true,
-            message: 'تم تسجيل الدخول بنجاح',
-            token,
-            admin: {
-                name: admin.name,
-                email: admin.email,
-                role: admin.role
-            }
-        });
-
-    } catch (err) {
-        console.error("Admin login error:", err);
-        return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الدخول" });
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
     }
+
+    // 2. التحقق إذا كان الحساب نشطاً
+    if (admin.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'حسابك معطل. يرجى التواصل مع مسؤول النظام.'
+      });
+    }
+
+    // 3. مقارنة كلمة المرور
+    const isMatch = await bcrypt.compare(password, admin.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+    }
+
+    // 4. إنشاء التوكن (JWT)
+    const token = jwt.sign(
+      { id: admin._id, role: admin.role },
+      process.env.JWT_SECRET || 'key',
+      { expiresIn: '1d' }
+    );
+
+    // تم إلغاء تخزين الكوكي (res.cookie) نهائياً
+
+    // 5. إرسال الاستجابة بنجاح والتوكن معها ليتولى الفرونت إند تخزينه
+    return res.status(200).json({
+      success: true,
+      message: 'تم تسجيل الدخول بنجاح',
+      token,
+      admin: {
+        name: admin.name,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Admin login error:", err);
+    return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الدخول" });
+  }
 };
 
 const adminLogout = async (req, res) => {
-    try {
-        // مسح الكوكي عبر ضبط انتهاء صلاحيتها أو استخدام clearCookie
-        res.clearCookie('auraToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-        });
+  try {
+    // مسح الكوكي عبر ضبط انتهاء صلاحيتها أو استخدام clearCookie
+    res.clearCookie('auraToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    });
 
-        return res.status(200).json({
-            success: true,
-            message: 'تم تسجيل الخروج بنجاح'
-        });
-    } catch (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الخروج" });
-    }
+    return res.status(200).json({
+      success: true,
+      message: 'تم تسجيل الخروج بنجاح'
+    });
+  } catch (err) {
+    console.error("Logout error:", err);
+    return res.status(500).json({ success: false, message: "حدث خطأ أثناء تسجيل الخروج" });
+  }
 };
 
 // 1. جلب كل الأصناف (GET)
@@ -182,7 +182,7 @@ const deleteProduct = async (req, res) => {
         message: 'الصنف غير موجود'
       });
     }
-    
+
     await ActivityLog.create({
       adminId,
       action: `حذف صنف: ${deletedProduct.name}`
@@ -202,171 +202,219 @@ const deleteProduct = async (req, res) => {
 };
 
 const getAdmins = async (req, res) => {
-    try {
-        const admins = await Admin.find().select('-password'); // جلب البيانات بدون كلمة المرور للأمان
-        res.status(200).json({ success: true, data: admins });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+  try {
+    const admins = await Admin.find().select('-password'); // جلب البيانات بدون كلمة المرور للأمان
+    res.status(200).json({ success: true, data: admins });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // إضافة حساب جديد (POST)
 const createAdmin = async (req, res) => {
-    try {
-        const { name, email, password, role, isActive } = req.body;
+  try {
+    const { name, email, password, role, isActive } = req.body;
+    const adminId = req.admin.id; // استخراج معرف المشرف الحالي القائم بالإضافة
 
-        // التحقق من عدم تكرار البريد الإلكتروني
-        const existingAdmin = await Admin.findOne({ email });
-        if (existingAdmin) {
-            return res.status(400).json({ success: false, message: "البريد الإلكتروني مستخدم مسبقاً." });
-        }
-
-        // تشفير كلمة المرور (اختياري ولكن ينصح به بشدة)
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const newAdmin = await Admin.create({
-            name,
-            email,
-            password: hashedPassword,
-            role,
-            isActive: isActive !== undefined ? isActive : true
-        });
-
-        res.status(201).json({ success: true, data: newAdmin, message: "تمت إضافة الحساب بنجاح." });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    // التحقق من عدم تكرار البريد الإلكتروني
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      return res.status(400).json({ success: false, message: "البريد الإلكتروني مستخدم مسبقاً." });
     }
+
+    // تشفير كلمة المرور (اختياري ولكن ينصح به بشدة)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newAdmin = await Admin.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      isActive: isActive !== undefined ? isActive : true
+    });
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `إضافة مشرف جديد: ${newAdmin.name}`
+    });
+
+    res.status(201).json({ success: true, data: newAdmin, message: "تمت إضافة الحساب بنجاح." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // تحديث بيانات الحساب (PUT)
 const updateAdmin = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, email, password, role, isActive } = req.body;
+  try {
+    const { id } = req.params;
+    const { name, email, password, role, isActive } = req.body;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالتعديل
 
-        let updateData = { name, email, role, isActive };
+    let updateData = { name, email, role, isActive };
 
-        // إذا تم إدخال كلمة مرور جديدة، يتم تشفيرها وتحديثها
-        if (password && password.trim() !== "") {
-            const salt = await bcrypt.genSalt(10);
-            updateData.password = await bcrypt.hash(password, salt);
-        }
-
-        const updatedAdmin = await Admin.findByIdAndUpdate(id, updateData, { new: true });
-
-        if (!updatedAdmin) {
-            return res.status(404).json({ success: false, message: "الحساب غير موجود." });
-        }
-
-        res.status(200).json({ success: true, data: updatedAdmin, message: "تم تعديل الحساب بنجاح." });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    // إذا تم إدخال كلمة مرور جديدة، يتم تشفيرها وتحديثها
+    if (password && password.trim() !== "") {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
     }
+
+    const updatedAdmin = await Admin.findByIdAndUpdate(id, updateData, { new: true });
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ success: false, message: "الحساب غير موجود." });
+    }
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `تعديل بيانات مشرف: ${updatedAdmin.name}`
+    });
+
+    res.status(200).json({ success: true, data: updatedAdmin, message: "تم تعديل الحساب بنجاح." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // حذف الحساب (DELETE)
 const deleteAdmin = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedAdmin = await Admin.findByIdAndDelete(id);
+  try {
+    const { id } = req.params;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالحذف
 
-        if (!deletedAdmin) {
-            return res.status(404).json({ success: false, message: "الحساب غير موجود." });
-        }
+    const deletedAdmin = await Admin.findByIdAndDelete(id);
 
-        res.status(200).json({ success: true, message: "تم حذف الحساب بنجاح." });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!deletedAdmin) {
+      return res.status(404).json({ success: false, message: "الحساب غير موجود." });
     }
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `حذف مشرف: ${deletedAdmin.name}`
+    });
+
+    res.status(200).json({ success: true, message: "تم حذف الحساب بنجاح." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // 1. إضافة ملاحظة جديدة (Create / Add)
 const createNote = async (req, res) => {
-    try {
-        const { noteText } = req.body;
-        
-        // استخراج adminId من التوكن الذي قام الميدل وير بوضعه في req.admin
-        const adminId = req.admin.id ;
+  try {
+    const { noteText } = req.body;
 
-        if (!adminId) {
-            return res.status(401).json({ success: false, message: 'غير مصرح، يرجى تسجيل الدخول مجدداً' });
-        }
+    // استخراج adminId من التوكن الذي قام الميدل وير بوضعه في req.admin
+    const adminId = req.admin.id;
 
-        const newNote = await Note.create({
-            adminId,
-            noteText
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'تمت إضافة الملاحظة بنجاح',
-            data: newNote
-        });
-    } catch (error) {
-        console.error("Error creating note:", error);
-        res.status(500).json({ success: false, message: 'حدث خطأ أثناء إضافة الملاحظة' });
+    if (!adminId) {
+      return res.status(401).json({ success: false, message: 'غير مصرح، يرجى تسجيل الدخول مجدداً' });
     }
+
+    const newNote = await Note.create({
+      adminId,
+      noteText
+    });
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `إضافة ملاحظة جديدة`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'تمت إضافة الملاحظة بنجاح',
+      data: newNote
+    });
+  } catch (error) {
+    console.error("Error creating note:", error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء إضافة الملاحظة' });
+  }
 };
 
 // 2. جلب كل الملاحظات (Get All) مع إمكانية جلب بيانات الأدمن الذي كتبها (populating)
 const getNotes = async (req, res) => {
-    try {
-        const notes = await Note.find()
-            .populate('adminId', 'name') // لجلب اسم وإيميل الأدمن المرتبط بالملاحظة
-            .sort({ createdAt: -1 });
+  try {
+    const notes = await Note.find()
+      .populate('adminId', 'name') // لجلب اسم وإيميل الأدمن المرتبط بالملاحظة
+      .sort({ createdAt: -1 });
 
-        res.status(200).json({
-            success: true,
-            count: notes.length,
-            data: notes
-        });
-    } catch (error) {
-        console.error("Error fetching notes:", error);
-        res.status(500).json({ success: false, message: 'حدث خطأ أثناء جلب الملاحظات' });
-    }
+    res.status(200).json({
+      success: true,
+      count: notes.length,
+      data: notes
+    });
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء جلب الملاحظات' });
+  }
 };
 
 // 3. تحديث ملاحظة (Update)
 const updateNote = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { noteText } = req.body;
+  try {
+    const { id } = req.params;
+    const { noteText } = req.body;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالتعديل
 
-        const updatedNote = await Note.findByIdAndUpdate(
-            id,
-            { noteText},
-            { new: true, runValidators: true }
-        );
+    const updatedNote = await Note.findByIdAndUpdate(
+      id,
+      { noteText },
+      { new: true, runValidators: true }
+    );
 
-        if (!updatedNote) {
-            return res.status(404).json({ success: false, message: 'الملاحظة غير موجودة' });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'تم تحديث الملاحظة بنجاح',
-            data: updatedNote
-        });
-    } catch (error) {
-        console.error("Error updating note:", error);
-        res.status(500).json({ success: false, message: 'حدث خطأ أثناء تحديث الملاحظة' });
+    if (!updatedNote) {
+      return res.status(404).json({ success: false, message: 'الملاحظة غير موجودة' });
     }
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `تعديل ملاحظة`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'تم تحديث الملاحظة بنجاح',
+      data: updatedNote
+    });
+  } catch (error) {
+    console.error("Error updating note:", error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء تحديث الملاحظة' });
+  }
 };
 
 // 4. حذف ملاحظة (Delete)
 const deleteNote = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedNote = await Note.findByIdAndDelete(id);
-        res.status(200).json({
-            success: true,
-            message: 'تم حذف الملاحظة بنجاح'
-        });
-    } catch (error) {
-        console.error("Error deleting note:", error);
-        res.status(500).json({ success: false, message: 'حدث خطأ أثناء حذف الملاحظة' });
+  try {
+    const { id } = req.params;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالحذف
+
+    const deletedNote = await Note.findByIdAndDelete(id);
+
+    if (!deletedNote) {
+      return res.status(404).json({ success: false, message: 'الملاحظة غير موجودة' });
     }
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `حذف ملاحظة`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'تم حذف الملاحظة بنجاح'
+    });
+  } catch (error) {
+    console.error("Error deleting note:", error);
+    res.status(500).json({ success: false, message: 'حدث خطأ أثناء حذف الملاحظة' });
+  }
 };
 
 const getLogs = async (req, res) => {
@@ -396,6 +444,7 @@ const getLogs = async (req, res) => {
 const deleteLog = async (req, res) => {
   try {
     const { id } = req.params;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالحذف
 
     const log = await ActivityLog.findById(id);
     if (!log) {
@@ -436,15 +485,24 @@ const addDevice = async (req, res) => {
   try {
     const { type } = req.params;
     const { deviceId, name, status, hourlyRate } = req.body;
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالإضافة
 
     const typeNames = { billiards: 'طاولة', playstation: 'بلايستيشن', racing: 'سيموليتر سباق' };
-    
+
+    const deviceName = name || `${typeNames[type] || 'جهاز'} ${deviceId}`;
+
     const newDevice = await DeviceSession.create({
       deviceId: Number(deviceId),
       type,
-      name: name || `${typeNames[type] || 'جهاز'} ${deviceId}`,
+      name: deviceName,
       status: status || 'AVAILABLE',
       hourlyRate: hourlyRate || 2.000
+    });
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `إضافة جهاز جديد: ${deviceName}`
     });
 
     res.status(201).json({ success: true, message: "تمت الإضافة بنجاح", data: newDevice });
@@ -456,12 +514,19 @@ const addDevice = async (req, res) => {
 const deleteDevice = async (req, res) => {
   try {
     const { type, id } = req.params;
-    
+    const adminId = req.admin.id; // استخراج معرف المشرف القائم بالحذف
+
     const deletedDevice = await DeviceSession.findOneAndDelete({ type, deviceId: Number(id) });
-    
+
     if (!deletedDevice) {
       return res.status(404).json({ success: false, message: "الجهاز غير موجود" });
     }
+
+    // تسجيل النشاط في السجل
+    await ActivityLog.create({
+      adminId,
+      action: `حذف جهاز: ${deletedDevice.name}`
+    });
 
     res.status(200).json({ success: true, message: "تم الحذف بنجاح" });
   } catch (error) {
@@ -472,7 +537,7 @@ const deleteDevice = async (req, res) => {
 const getDeviceSession = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // البحث المباشر بـ _id في قاعدة البيانات
     const device = await DeviceSession.findById(id);
 
@@ -513,9 +578,10 @@ const closeDeviceSession = async (req, res) => {
   try {
     const { id } = req.params; // هذا هو الـ _id الخاص بمونجو القادم من الـ Params
     const { paymentMethod, finalTotal: clientFinalTotal, timeCost: clientTimeCost, productsTotal: clientProductsTotal, discountPercent: clientDiscountPercent } = req.body;
+    const adminId = req.admin.id;
 
     // 1. جلب بيانات الجلسة الحالية باستخدام الـ _id الخاص بمونجو
-    const session = await DeviceSession.findById(id); 
+    const session = await DeviceSession.findById(id);
     if (!session) {
       return res.status(404).json({ success: false, message: "الجلسة غير موجودة" });
     }
@@ -524,14 +590,14 @@ const closeDeviceSession = async (req, res) => {
     const timeCost = clientTimeCost !== undefined ? clientTimeCost : (session.timeCost || 0);
     const productsTotal = clientProductsTotal !== undefined ? clientProductsTotal : (session.productsTotal || 0);
     const discountPercent = clientDiscountPercent !== undefined ? clientDiscountPercent : (session.discountPercent || 0);
-    
+
     const subTotal = timeCost + productsTotal;
     const discountAmount = (subTotal * discountPercent) / 100;
     const finalTotal = clientFinalTotal !== undefined ? clientFinalTotal : Math.max(0, subTotal - discountAmount);
 
     // 3. حفظ العملية في جدول العمليات المغلقة مع تخزين الـ sessionId الخاص بموديل الجهاز والـ _id
     const closedSessionData = new ClosedSession({
-      sessionId: session.sessionId || session._id.toString(), // تخزين الـ ID الخاص بالموديل أو المعرف المخصص
+      sessionId: session.sessionId || session._id.toString(),
       deviceName: session.name || session.deviceName || "جهاز",
       deviceType: session.type || session.deviceType || "billiards",
       customer: session.customer || { name: "", phone: "" },
@@ -547,15 +613,21 @@ const closeDeviceSession = async (req, res) => {
 
     await closedSessionData.save();
 
-    // 4. إعادة تعيين الجلسة الحالية لتصبح متاحة (AVAILABLE) وتفريغ الحقول
+    // 4. إعادة تعيين الجلسة الحالية لتصبح متاحة (AVAILABLE) وتفريغ الحقول بالكامل
     session.status = "AVAILABLE";
     session.startTime = null;
     session.cart = [];
     session.customer = { name: "", phone: "" };
     session.discountPercent = 0;
-    session.timeCost = 0;
-    session.productsTotal = 0;
+    session.elapsedSeconds = 0;         // تصفير الوقت المنقضي
+    session.selectedDurationHours = 1;  // إرجاع المدة الافتراضية
+    session.timeMode = "OPEN";          // إرجاع وضع الوقت للافتراضي
     await session.save();
+
+    await ActivityLog.create({
+      adminId,
+      action: `إغلاق جلسة الجهاز: ${session.name} بقيمة إجمالية: ${finalTotal}`
+    });
 
     return res.status(200).json({ success: true, message: "تم إغلاق الحساب وحفظ العملية بنجاح", data: closedSessionData });
   } catch (error) {
@@ -591,29 +663,61 @@ const getDailyReports = async (req, res) => {
   }
 };
 
+const checkAdminRole = async (req, res) => {
+    try {
+        const adminId = req.admin.id; // جلب الـ ID من التوكن عبر الميدل وير
+
+        // البحث عن المشرف في الداتا بيز
+        const admin = await Admin.findById(adminId);
+
+        if (!admin) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'المشرف غير موجود' 
+            });
+        }
+
+        // التحقق مما إذا كان الرول هو 'مدير النظام'
+        const isSuperAdmin = admin.role === 'مدير النظام';
+
+        // إرجاع النتيجة true أو false
+        return res.status(200).json({
+            success: true,
+            isSuperAdmin: isSuperAdmin // ستكون true أو false
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'حدث خطأ في الخادم أثناء التحقق من الصلاحية' 
+        });
+    }
+};
 
 module.exports = {
-    adminLogin,
-    getProducts,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    getAdmins,
-    createAdmin,
-    updateAdmin,
-    deleteAdmin,
-    adminLogout,
-    createNote,
-    getNotes,
-    updateNote,
-    deleteNote,
-    getLogs,
-    deleteLog,
-    getDeviceSession,
-    updateDeviceSession,
-    closeDeviceSession,
-    getAllDevices,
-    addDevice,
-    deleteDevice,
-    getDailyReports
+  adminLogin,
+  getProducts,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  getAdmins,
+  createAdmin,
+  updateAdmin,
+  deleteAdmin,
+  adminLogout,
+  createNote,
+  getNotes,
+  updateNote,
+  deleteNote,
+  getLogs,
+  deleteLog,
+  getDeviceSession,
+  updateDeviceSession,
+  closeDeviceSession,
+  getAllDevices,
+  addDevice,
+  deleteDevice,
+  getDailyReports,
+  checkAdminRole
 };
