@@ -11,7 +11,7 @@ const {adminLogin,getProducts,addProduct,updateProduct,deleteProduct,
 AdminRouter.post('/login', adminLogin);
 AdminRouter.post('/logout', adminLogout);
 
-AdminRouter.get('/products',isAdmin, authorized, getProducts);
+AdminRouter.get('/products', authorized, getProducts);
 AdminRouter.post('/products',isAdmin, authorized, addProduct);
 AdminRouter.put('/products/:id',isAdmin, authorized, updateProduct);
 AdminRouter.delete('/products/:id',isAdmin, authorized, deleteProduct);
